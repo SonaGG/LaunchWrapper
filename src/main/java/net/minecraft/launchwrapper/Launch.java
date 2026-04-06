@@ -17,7 +17,7 @@ public class Launch {
     public static File assetsDir;
     public static Map<String, Object> blackboard;
 
-    static void main(String[] args) {
+    public static void main(String[] args) {
         new Launch().launch(args);
     }
 
