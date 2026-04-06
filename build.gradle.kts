@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "net.prismclient"
-version = "1.0-SNAPSHOT"
+version = "1.0"
 
 java {
     toolchain {
@@ -47,6 +47,8 @@ publishing {
 
     publications {
         create<MavenPublication>(project.name) {
+            version = project.version.toString()
+
             from(components["java"])
         }
     }
