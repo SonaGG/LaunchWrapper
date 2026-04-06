@@ -1,0 +1,70 @@
+name: Gradle CI
+
+on:
+  push:
+    branches: [ 'master' ]
+    paths-ignore:
+      - 'docs/**'
+      - 'README.md'
+      - 'example/**'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build & Publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1000
+          fetch-tags: true
+
+      - name: Fetch tags (fallback)
+        run: |
+          if [[ -z $(git tag --list) ]]; then
+            git fetch --tags
+          fi
+
+      - name: Setup Java 21
+        id: setup-java-simple
+        continue-on-error: true
+        run: |
+          FOUND_JAVA=$(echo $JAVA_HOME_21_X64)
+          if [[ -n $FOUND_JAVA ]]; then
+            echo "JAVA_HOME=$FOUND_JAVA" >> "$GITHUB_ENV"
+          else
+            exit 1
+          fi
+
+      - name: Setup Java 21 (fallback)
+        if: ${{ steps.setup-java-simple.outcome != 'success' }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Confirm Java
+        run: echo "::notice title=Java::$(java -Xinternalversion)"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-encryption-key: ${{ secrets.GRADLE_CACHE_KEY }}
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Set Maven credentials
+        env:
+          MAVEN_USER: ${{ secrets.MAVEN_USER }}
+          MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
+        if: ${{ env.MAVEN_USER != '' }}
+        run: |
+          echo "MAVEN_USER=$MAVEN_USER" >> "$GITHUB_ENV"
+          echo "MAVEN_PASSWORD=$MAVEN_PASSWORD" >> "$GITHUB_ENV"
+
+      - name: Build & Publish
+        run: ./gradlew publish
